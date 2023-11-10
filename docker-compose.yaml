@@ -1,20 +1,51 @@
 version: '3'
 
 services:
-  superset:
-      build:
-        context: ./superset
-        dockerfile: Dockerfile
-      container_name: superset
-      environment:
-        - ADMIN_USERNAME=admin
-        - ADMIN_EMAIL=admin@superset.com
-        - ADMIN_PASSWORD=admin
-      ports:
-        - '8088:8088'
+  mariadb:
+    container_name: mariadb
+    image: mariadb
+    restart: always
+    volumes:
+      - ./mariadb:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: 'db_superset'
+      MYSQL_USER: 'admin'
+      MYSQL_PASSWORD: 'admin'
+      MARIADB_ROOT_PASSWORD: 'admin'
+    ports:
+      - 2022:3306
   drill:
-    platform: linux/amd64
+    container_name: drill
     image: apache/drill:latest
+    restart: always
+    volumes:
+      - ./drill:/data
     ports:
       - "8047:8047"
     stdin_open: true
+  superset:
+    container_name: superset
+    restart: always
+    build:
+      context: ./superset
+      dockerfile: Dockerfile
+    environment:
+      ADMIN_USERNAME: admin
+      ADMIN_EMAIL: admin@superset.com
+      ADMIN_PASSWORD: admin
+      MAPBOX_API_KEY: 'pk.eyJ1IjoiamFta2lsbHM1IiwiYSI6ImNrd293aDJyZjA3MGQyd3AzdTJpeXp0dTAifQ.w96chqjB6Nv3PW6_lpQVHQ'
+      DATABASE_DB: 'superset'
+      DATABASE_HOST: 'mariadb'
+      DATABASE_PASSWORD: 'admin'
+      DATABASE_USER: 'admin'
+      DATABASE_PORT: 2022
+      DATABASE_DIALECT: 'mysql'  
+      MYSQL_DATABASE: 'db_superset'
+      MYSQL_USER: 'root'
+      MYSQL_PASSWORD: 'admin'
+      MYSQL_RANDOM_ROOT_PASSWORD: yes
+    ports:
+      - '8088:8088'
+    depends_on:
+      - mariadb
+      - drill
